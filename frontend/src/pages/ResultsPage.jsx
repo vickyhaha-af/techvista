@@ -6,6 +6,8 @@ import {
   Play, Sparkles
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import BiasAuditPanel from '../components/BiasAuditPanel'
+import NumberTicker, { ScoreTicker } from '../components/NumberTicker'
 import { useSession } from '../App'
 import { useToast } from '../components/Toast'
 import { recalculateScores } from '../utils/api'
@@ -14,8 +16,6 @@ import SkillGapCard from '../components/SkillGapCard'
 import JDQualityCard from '../components/JDQualityCard'
 import ShortcutsModal from '../components/ShortcutsModal'
 import DemoTour from '../components/DemoTour'
-import BiasAuditPanel from '../components/BiasAuditPanel'
-import { ScoreTicker } from '../components/NumberTicker'
 import { initShortcuts } from '../utils/shortcuts'
 
 function getScoreLevel(score) {
@@ -39,9 +39,9 @@ function ResultsPage() {
   const [showComparison, setShowComparison] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [activeTab, setActiveTab] = useState('detail')
+  const [hoveredDim, setHoveredDim] = useState(null)
   const [showWelcome, setShowWelcome] = useState(() => !!sessionData?.is_demo)
   const [showTour, setShowTour] = useState(false)
-  const [hoveredDim, setHoveredDim] = useState(null)
 
   const scores = sessionData?.scores || []
   const biasAudit = sessionData?.bias_audit
@@ -294,12 +294,14 @@ function ResultsPage() {
               const isInCompare = compareSet.has(s.candidate_name)
               const rankNum = s.rank || i + 1
               return (
-                <div
+                <motion.div
+                  layout
+                  layoutId={s.candidate_name}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   key={s.candidate_name}
                   onClick={() => setSelectedIdx(i)}
                   style={{
                     padding: '11px 16px', cursor: 'pointer',
-                    transition: 'all 120ms',
                     background: isSelected ? 'var(--sage-pale)' : 'var(--white)',
                     borderLeft: isSelected ? '3px solid var(--sage)' : '3px solid transparent',
                     borderBottom: '1px solid var(--cream-deep)',
@@ -357,7 +359,7 @@ function ResultsPage() {
                       {isInCompare ? '✓' : '+'}
                     </button>
                   )}
-                </div>
+                </motion.div>
               )
             })}
           </div>
@@ -368,7 +370,8 @@ function ResultsPage() {
           {/* Tab bar */}
           <div style={{
             display: 'flex', gap: 0, background: 'var(--white)',
-            borderBottom: '1px solid var(--border)', paddingLeft: 32
+            borderBottom: '1px solid var(--border)', paddingLeft: 32,
+            position: 'relative'
           }}>
             {[
               { key: 'detail', label: 'Candidate Detail', icon: User },
@@ -383,12 +386,25 @@ function ResultsPage() {
                   padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 6,
                   fontFamily: 'var(--font-sans)', fontWeight: activeTab === key ? 600 : 400, fontSize: 13,
                   color: activeTab === key ? 'var(--sage)' : 'var(--slate-mid)',
-                  borderBottom: activeTab === key ? '2px solid var(--sage)' : '2px solid transparent',
-                  transition: 'all 150ms', marginBottom: -1
+                  position: 'relative', marginBottom: -1
                 }}
               >
                 <Icon size={13} />
                 {label}
+                {activeTab === key && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 2,
+                      background: 'var(--sage)'
+                    }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -457,7 +473,7 @@ function ResultsPage() {
 
                   {/* Dimension Score Cards */}
                   <div className="section-label">SCORE BREAKDOWN</div>
-                  <div
+                  <div 
                     style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginTop: 8 }}
                     onMouseLeave={() => setHoveredDim(null)}
                   >
@@ -469,14 +485,14 @@ function ResultsPage() {
                         <motion.div
                           key={dim.key}
                           initial={{ opacity: 0, y: 10 }}
-                          animate={{
-                            opacity: isDimmed ? 0.5 : 1,
+                          animate={{ 
+                            opacity: isDimmed ? 0.6 : 1, 
                             y: 0,
-                            scale: isHovered ? 1.03 : isDimmed ? 0.97 : 1
+                            scale: isHovered ? 1.02 : 1
                           }}
-                          transition={{
+                          transition={{ 
                             delay: di * 0.1,
-                            scale: { type: 'spring', stiffness: 400, damping: 25 },
+                            scale: { type: "spring", stiffness: 400, damping: 25 },
                             opacity: { duration: 0.15 }
                           }}
                           onMouseEnter={() => setHoveredDim(dim.key)}
@@ -484,7 +500,7 @@ function ResultsPage() {
                             background: 'var(--white)', border: '1px solid var(--border)',
                             borderRadius: 'var(--radius-card)', padding: 18,
                             position: 'relative', overflow: 'hidden',
-                            cursor: 'pointer',
+                            cursor: 'pointer'
                           }}
                         >
                           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: dim.color }} />
@@ -647,7 +663,7 @@ function ResultsPage() {
           overflowY: 'auto', flexShrink: 0
         }}>
           <div style={{ padding: '20px 18px', flex: 1 }}>
-            {/* BiasAuditPanel — scanner sweep, text scramble, pulse rings */}
+            {/* Bias Audit Panel — Security Scan UI */}
             <BiasAuditPanel biasAudit={biasAudit} scoresCount={scores.length} />
 
             {/* Score Distribution Chart */}

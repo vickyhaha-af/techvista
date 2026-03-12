@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../App'
 import { analyzeResumes, loadDemo } from '../utils/api'
+
+// Lazy load Spline for performance
+const Spline = React.lazy(() => import('@splinetool/react-spline'))
 
 const LOG_ICONS = { success: '✓', running: '▶', warning: '⚠', error: '✗' }
 const LOG_COLORS = {
@@ -24,7 +27,7 @@ function ProcessingPage() {
 
   const addLog = (type, message) => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    setLogs(prev => [...prev, { time, type, message }])
+    setLogs(prev => [...prev, { id: Date.now() + Math.random(), time, type, message }])
   }
 
   useEffect(() => {
@@ -157,140 +160,212 @@ function ProcessingPage() {
   const offset = circumference - (percent / 100) * circumference
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
-      style={{ background: 'var(--cream)', minHeight: 'calc(100vh - 56px)' }}
-    >
-      <div style={{ maxWidth: 580, margin: '0 auto', padding: '80px 24px 64px' }}>
-        {/* Header */}
-        <div className="section-label">PROCESSING</div>
-        <motion.h1
-          className="text-h1"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{ marginBottom: 8 }}
-        >
-          Analysing candidates...
-        </motion.h1>
-        <p className="text-body" style={{ color: 'var(--slate-mid)' }}>
-          This takes 30–90 seconds for 50 resumes. Do not close this tab.
-        </p>
-
-        {/* Progress Ring */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
-          <svg width={128} height={128} style={{ transform: 'rotate(-90deg)' }}>
-            <circle
-              cx={64} cy={64} r={radius}
-              fill="none" stroke="var(--cream-deep)" strokeWidth={8}
-            />
-            <circle
-              cx={64} cy={64} r={radius}
-              fill="none" stroke="var(--sage)" strokeWidth={8}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              style={{ transition: 'stroke-dashoffset 400ms ease' }}
-            />
-          </svg>
-          <div style={{
-            position: 'relative', marginTop: -88,
-            textAlign: 'center',
-            height: 68, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center'
-          }}>
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 30,
-              color: 'var(--ink)'
-            }}>{percent}%</span>
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-              color: 'var(--slate-light)'
-            }}>complete</span>
-          </div>
-
-          {/* Current step */}
-          <motion.p
-            key={currentStep}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 17,
-              color: 'var(--sage)', marginTop: 30, textAlign: 'center'
-            }}
-          >
-            {currentStep}
-          </motion.p>
-        </div>
-
-        {/* Live Log */}
-        <div style={{ marginTop: 32 }}>
-          <div className="section-label">LIVE LOG</div>
-          <div
-            ref={logRef}
-            style={{
-              background: 'var(--white)', border: '1px solid var(--border)',
-              borderRadius: 10, padding: '16px 20px',
-              maxHeight: 260, overflowY: 'auto',
-            }}
-          >
-            {logs.map((log, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.18 }}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                  lineHeight: 1.9,
-                }}
-              >
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 11,
-                  color: 'var(--slate-light)', width: 60, flexShrink: 0
-                }}>{log.time}</span>
-                <span style={{
-                  color: LOG_COLORS[log.type], fontSize: 12, width: 14,
-                  textAlign: 'center', flexShrink: 0
-                }}>{LOG_ICONS[log.type]}</span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 12,
-                  color: MSG_COLORS[log.type]
-                }}>{log.message}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Cancel */}
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <button className="btn-ghost" onClick={handleCancel} style={{ fontSize: 13 }}>
-            Cancel and start over
-          </button>
-        </div>
-
-        {/* Error state */}
-        {error && (
-          <div style={{
-            marginTop: 24, padding: '16px 20px',
-            background: 'var(--blush-light)', border: '1px solid var(--blush)',
-            borderRadius: 10, textAlign: 'center'
-          }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>
-              Processing Error
-            </p>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--slate)', marginBottom: 16 }}>
-              {error}
-            </p>
-            <button className="btn-primary" onClick={startNew}>Try Again</button>
-          </div>
-        )}
+    <div style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+      {/* 3D Spline Background */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <Suspense fallback={
+          <div style={{ 
+            width: '100%', 
+            height: '100%', 
+            background: 'linear-gradient(135deg, var(--cream) 0%, var(--sage-pale) 100%)' 
+          }} />
+        }>
+          <Spline 
+            scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
+            style={{ width: '100%', height: '100%' }}
+          />
+        </Suspense>
+        {/* Overlay to soften the 3D background */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            background: 'rgba(250, 248, 244, 0.7)',
+            backdropFilter: 'blur(1px)'
+          }} 
+        />
       </div>
-    </motion.div>
+
+      {/* Main Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22 }}
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        <div style={{ maxWidth: 580, margin: '0 auto', padding: '80px 24px 64px' }}>
+          {/* Header */}
+          <div className="section-label">PROCESSING</div>
+          <motion.h1
+            className="text-h1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ marginBottom: 8 }}
+          >
+            Analysing candidates...
+          </motion.h1>
+          <p className="text-body" style={{ color: 'var(--slate-mid)' }}>
+            This takes 30–90 seconds for 50 resumes. Do not close this tab.
+          </p>
+
+          {/* Progress Ring with Drop Shadow */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
+            <svg width={128} height={128} style={{ transform: 'rotate(-90deg)' }}>
+              <defs>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="rgba(74,124,111,0.5)" />
+                </filter>
+              </defs>
+              <circle
+                cx={64} cy={64} r={radius}
+                fill="none" stroke="var(--cream-deep)" strokeWidth={8}
+              />
+              <circle
+                cx={64} cy={64} r={radius}
+                fill="none" stroke="var(--sage)" strokeWidth={8}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                filter="url(#glow)"
+                style={{ transition: 'stroke-dashoffset 400ms ease' }}
+              />
+            </svg>
+            <div style={{
+              position: 'relative', marginTop: -88,
+              textAlign: 'center',
+              height: 68, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center'
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 30,
+                color: 'var(--ink)'
+              }}>{percent}%</span>
+              <span style={{
+                fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                color: 'var(--slate-light)'
+              }}>complete</span>
+            </div>
+
+            {/* Current step */}
+            <motion.p
+              key={currentStep}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 17,
+                color: 'var(--sage)', marginTop: 30, textAlign: 'center'
+              }}
+            >
+              {currentStep}
+            </motion.p>
+          </div>
+
+          {/* Glass Terminal - Live Log */}
+          <div style={{ marginTop: 32 }}>
+            <div className="section-label">LIVE LOG</div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              ref={logRef}
+              className="backdrop-blur-xl"
+              style={{
+                background: 'rgba(255, 255, 255, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: 16,
+                padding: '20px 24px',
+                maxHeight: 280,
+                overflowY: 'auto',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2) inset',
+              }}
+            >
+              <AnimatePresence mode="popLayout">
+                {logs.map((log, i) => {
+                  const isLatest = i === logs.length - 1
+                  return (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ 
+                        opacity: isLatest ? 1 : 0.7, 
+                        y: 0,
+                      }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ 
+                        duration: 0.25,
+                        ease: [0.25, 0.46, 0.45, 0.94]
+                      }}
+                      style={{
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        gap: 10,
+                        lineHeight: 1.9,
+                        transition: 'opacity 0.3s ease',
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: 11,
+                        color: 'var(--slate-light)', width: 60, flexShrink: 0
+                      }}>{log.time}</span>
+                      <span style={{
+                        color: LOG_COLORS[log.type], fontSize: 12, width: 14,
+                        textAlign: 'center', flexShrink: 0
+                      }}>{LOG_ICONS[log.type]}</span>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: 12,
+                        color: MSG_COLORS[log.type]
+                      }}>{log.message}</span>
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+
+          {/* Cancel */}
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <button className="btn-ghost" onClick={handleCancel} style={{ fontSize: 13 }}>
+              Cancel and start over
+            </button>
+          </div>
+
+          {/* Error state */}
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                marginTop: 24, padding: '16px 20px',
+                background: 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid var(--blush)',
+                borderRadius: 16, 
+                textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
+              }}
+            >
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>
+                Processing Error
+              </p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--slate)', marginBottom: 16 }}>
+                {error}
+              </p>
+              <button className="btn-primary" onClick={startNew}>Try Again</button>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   )
 }
 

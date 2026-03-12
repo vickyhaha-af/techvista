@@ -104,3 +104,86 @@ class SessionData(BaseModel):
     progress: float = 0.0
     is_demo: bool = False
     created_at: str = ""
+
+
+# ==================== KANBAN PIPELINE MODELS ====================
+
+class CandidateStageUpdate(BaseModel):
+    """Request body for updating a candidate's pipeline stage."""
+    candidate_id: str
+    new_stage: str  # "new", "screening", "interview_1", "interview_2", "offer", "hired", "rejected"
+    session_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class PipelineCandidate(BaseModel):
+    """A candidate within the Kanban pipeline."""
+    candidate_id: str
+    candidate_name: str
+    stage: str = "new"
+    composite_score: float = 0.0
+    days_in_stage: int = 0
+    stage_entered_at: str = ""
+    notes: str = ""
+    shortlisted: bool = False
+
+
+# ==================== ANTI-BS AUTHENTICATOR MODELS ====================
+
+class AntiBSRequest(BaseModel):
+    """Request body for authenticity analysis."""
+    resume_text: str
+    candidate_name: Optional[str] = None
+    github_url: Optional[str] = None
+    kaggle_url: Optional[str] = None
+
+
+class AntiBSResult(BaseModel):
+    """Result of authenticity analysis."""
+    authenticity_score: float = 0.0  # 0-100
+    fluff_words: list[str] = Field(default_factory=list)
+    hard_outcomes: list[str] = Field(default_factory=list)
+    signal_to_noise_ratio: float = 0.0
+    action_verb_analysis: dict = Field(default_factory=dict)
+    github_verified: bool = False
+    kaggle_verified: bool = False
+    verification_notes: str = ""
+
+
+# ==================== TEAM TOPOLOGY MODELS ====================
+
+class TopologyMatchRequest(BaseModel):
+    """Request body for team topology matching."""
+    resume_text: str
+    jd_text: str
+    team_context: str  # e.g. "Heavy on API design, lacking DevOps"
+    candidate_name: Optional[str] = None
+
+
+class TopologyMatchResult(BaseModel):
+    """Result of team topology analysis."""
+    fit_score: float = 0.0  # 0-100
+    fills_gaps: list[str] = Field(default_factory=list)
+    overlaps: list[str] = Field(default_factory=list)
+    team_balance_impact: str = ""
+    recommendation: str = ""
+
+
+# ==================== AUDIT TRAIL MODELS ====================
+
+class AuditLogEntry(BaseModel):
+    """An entry in the immutable audit trail."""
+    timestamp: str = ""
+    action: str = ""  # "stage_change", "score_adjusted", "weight_changed", "export", "bias_flag"
+    user: str = "system"
+    session_id: Optional[str] = None
+    candidate_id: Optional[str] = None
+    details: dict = Field(default_factory=dict)
+
+
+class AuditLogRequest(BaseModel):
+    """Request body for logging an audit entry."""
+    action: str
+    session_id: Optional[str] = None
+    candidate_id: Optional[str] = None
+    details: dict = Field(default_factory=dict)

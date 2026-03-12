@@ -53,4 +53,58 @@ export const exportCSV = (sessionId) =>
 // Health check
 export const healthCheck = () => api.get('/health')
 
+// ==================== KANBAN PIPELINE ====================
+
+// Update candidate pipeline stage
+export const updateCandidateStage = (candidateId, newStage, sessionId, notes = '') =>
+  api.post('/candidates/stage', {
+    candidate_id: candidateId,
+    new_stage: newStage,
+    session_id: sessionId,
+    notes
+  })
+
+// Get pipeline state for a session
+export const getPipeline = (sessionId) => api.get(`/pipeline/${sessionId}`)
+
+// ==================== ANTI-BS AUTHENTICATOR ====================
+
+// Analyze resume authenticity
+export const analyzeAuthenticity = (resumeText, candidateName = '', githubUrl = '', kaggleUrl = '') =>
+  api.post('/anti-bs', {
+    resume_text: resumeText,
+    candidate_name: candidateName,
+    github_url: githubUrl,
+    kaggle_url: kaggleUrl
+  })
+
+// ==================== TEAM TOPOLOGY ====================
+
+// Match candidate to team dynamics
+export const matchTeamTopology = (resumeText, jdText, teamContext, candidateName = '') =>
+  api.post('/topology-match', {
+    resume_text: resumeText,
+    jd_text: jdText,
+    team_context: teamContext,
+    candidate_name: candidateName
+  })
+
+// ==================== AUDIT TRAIL ====================
+
+// Log an audit entry
+export const logAuditEntry = (action, sessionId = null, candidateId = null, details = {}) =>
+  api.post('/audit/log', {
+    action,
+    session_id: sessionId,
+    candidate_id: candidateId,
+    details
+  })
+
+// Get audit stream (with optional session filter)
+export const getAuditStream = (sessionId = null, limit = 50, offset = 0) =>
+  api.get('/audit-stream', { params: { session_id: sessionId, limit, offset } })
+
+// Export audit log for compliance
+export const exportAuditLog = (sessionId) => api.get(`/audit/export/${sessionId}`)
+
 export default api
