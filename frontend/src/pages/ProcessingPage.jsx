@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../App'
 import { analyzeResumes, loadDemo } from '../utils/api'
 
+// ProcessingPage - No external 3D dependencies
+
 const LOG_ICONS = { success: '✓', running: '▶', warning: '⚠', error: '✗' }
 const LOG_COLORS = {
   success: 'var(--moss)', running: 'var(--sage)',
