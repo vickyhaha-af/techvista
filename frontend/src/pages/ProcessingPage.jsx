@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../App'
 import { analyzeResumes, loadDemo } from '../utils/api'
-
-// Lazy load Spline for performance
-const Spline = React.lazy(() => import('@splinetool/react-spline'))
 
 const LOG_ICONS = { success: '✓', running: '▶', warning: '⚠', error: '✗' }
 const LOG_COLORS = {
@@ -161,37 +158,24 @@ function ProcessingPage() {
 
   return (
     <div style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-      {/* 3D Spline Background */}
+      {/* Animated Gradient Background */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: 0,
           pointerEvents: 'none',
+          background: 'linear-gradient(135deg, var(--cream) 0%, var(--sage-pale) 50%, var(--cream) 100%)',
+          backgroundSize: '400% 400%',
+          animation: 'gradientShift 8s ease infinite',
         }}
-      >
-        <Suspense fallback={
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            background: 'linear-gradient(135deg, var(--cream) 0%, var(--sage-pale) 100%)' 
-          }} />
-        }>
-          <Spline 
-            scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
-            style={{ width: '100%', height: '100%' }}
-          />
-        </Suspense>
-        {/* Overlay to soften the 3D background */}
-        <div 
-          style={{ 
-            position: 'absolute', 
-            inset: 0, 
-            background: 'rgba(250, 248, 244, 0.7)',
-            backdropFilter: 'blur(1px)'
-          }} 
-        />
-      </div>
+      />
+      <style>{`
+        @keyframes gradientShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+      `}</style>
 
       {/* Main Content */}
       <motion.div
